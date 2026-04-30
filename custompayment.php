@@ -21,7 +21,7 @@ class CustomPayment extends PaymentModule
     {
         $this->name = 'custompayment';
         $this->tab = 'payments_gateways';
-        $this->version = '1.1.1';
+        $this->version = '1.1.2';
         $this->ps_versions_compliancy = array('min' => '1.7.1.0', 'max' => _PS_VERSION_);
         $this->author = 'Inform-All';
         $this->controllers = array('payment', 'validation');
@@ -50,10 +50,10 @@ class CustomPayment extends PaymentModule
     {
         Configuration::updateValue(self::FLAG_DISPLAY_PAYMENT_INVITE, true);
         if (
-			!parent::install() ||
-			!$this->registerHook('paymentReturn') ||
-			!$this->registerHook('paymentOptions') ||
-			!$this->registerHook('actionEmailSendBefore')
+            !parent::install() ||
+            !$this->registerHook('paymentReturn') ||
+            !$this->registerHook('paymentOptions') ||
+            !$this->registerHook('actionEmailSendBefore')
         ) {
             return false;
         }
@@ -86,7 +86,7 @@ class CustomPayment extends PaymentModule
     {
         if (Tools::isSubmit('btnSubmit')) {
             Configuration::updateValue(self::FLAG_DISPLAY_PAYMENT_INVITE,
-                Tools::getValue(self::FLAG_DISPLAY_PAYMENT_INVITE));
+                                       Tools::getValue(self::FLAG_DISPLAY_PAYMENT_INVITE));
 
             if (!Tools::getValue('CUSTOM_ORDER_STATUS')) {
                 $this->_postErrors[] = $this->trans('A custom order status has to be set.', array(), "Modules.Custompayment.Admin");
@@ -147,36 +147,36 @@ class CustomPayment extends PaymentModule
         return $this->_html;
     }
 
-	public function hookActionEmailSendBefore($params) {
-		$new_template = Configuration::get('CUSTOM_PAYMENT_EMAIL_CONF');
-		if ( ! $new_template ) {
-			return;
-		}
-		// Passed by reference.
-		$template = $params['template'];
-		if ( 'order_conf' !== $template ) {
-			// No order email.
-			return;
-		}
+    public function hookActionEmailSendBefore($params) {
+        $new_template = Configuration::get('CUSTOM_PAYMENT_EMAIL_CONF');
+        if ( ! $new_template ) {
+            return;
+        }
+        // Passed by reference.
+        $template = $params['template'];
+        if ( 'order_conf' !== $template ) {
+            // No order email.
+            return;
+        }
 
-		$vars = $params['templateVars'];
-		if ( empty( $vars['{id_order}'] ) ) {
-			// No order ID found.
-			return;
-		}
+        $vars = $params['templateVars'];
+        if ( empty( $vars['{id_order}'] ) ) {
+            // No order ID found.
+            return;
+        }
 
-		$order_id = $vars['{id_order}'];
-		$order = new Order( $order_id );
-		$state = $order->getCurrentState();
+        $order_id = $vars['{id_order}'];
+        $order = new Order( $order_id );
+        $state = $order->getCurrentState();
 
-		if ( $state !== Tools::getValue('CUSTOM_ORDER_STATUS', Configuration::get('CUSTOM_ORDER_STATUS')) ) {
-			// Status mismatch.
-			return;
-		}
+        if ( $state !== Tools::getValue('CUSTOM_ORDER_STATUS', Configuration::get('CUSTOM_ORDER_STATUS')) ) {
+            // Status mismatch.
+            return;
+        }
 
-		$template = $new_template;
-		$params['template'] = $template;
-	}
+        $template = $new_template;
+        $params['template'] = $template;
+    }
 
     public function hookPaymentOptions($params)
     {
@@ -194,9 +194,9 @@ class CustomPayment extends PaymentModule
 
         $newOption = new PaymentOption();
         $newOption->setModuleName(Tools::nl2br(Configuration::get('CUSTOM_PAYMENT_NAME', $this->context->language->id)))
-            ->setCallToActionText(Tools::nl2br(Configuration::get('CUSTOM_PAYMENT_NAME', $this->context->language->id)))
-            ->setAction($this->context->link->getModuleLink($this->name, 'validation', array(), true))
-            ->setAdditionalInformation($this->fetch('module:custompayment/views/templates/hook/custompayment_start.tpl'));
+                  ->setCallToActionText(Tools::nl2br(Configuration::get('CUSTOM_PAYMENT_NAME', $this->context->language->id)))
+                  ->setAction($this->context->link->getModuleLink($this->name, 'validation', array(), true))
+                  ->setAdditionalInformation($this->fetch('module:custompayment/views/templates/hook/custompayment_start.tpl'));
         $payment_options = [
             $newOption,
         ];
@@ -223,19 +223,20 @@ class CustomPayment extends PaymentModule
 
 
             $totalToPaid = $params['order']->getOrdersTotalPaid() - $params['order']->getTotalPaid();
+            $currency = new Currency((int) $params['order']->id_currency);
+
             $this->smarty->assign(array(
-                'shop_name' => $this->context->shop->name,
-                'total' => Tools::displayPrice(
-                    $totalToPaid,
-                    new Currency($params['order']->id_currency),
-                    false
-                ),
-                'custompaymentName' => $custompaymentName,
-                'custompaymentReturnedText' =>$custompaymentReturnedText,
-                'status' => 'ok',
-                'reference' => $params['order']->reference,
-                'contact_url' => $this->context->link->getPageLink('contact', true),
-            ));
+                                      'shop_name' => $this->context->shop->name,
+                                      'total' => $this->context->getCurrentLocale()->formatPrice(
+                                          $totalToPaid,
+                                          $currency->iso_code
+                                      ),
+                                      'custompaymentName' => $custompaymentName,
+                                      'custompaymentReturnedText' =>$custompaymentReturnedText,
+                                      'status' => 'ok',
+                                      'reference' => $params['order']->reference,
+                                      'contact_url' => $this->context->link->getPageLink('contact', true),
+                                  ));
         } else {
             $this->smarty->assign(
                 array(
@@ -300,12 +301,12 @@ class CustomPayment extends PaymentModule
                         ),
                     ),
                     array(
-	                    'type' => 'text',
-	                    'label' => $this->trans('Custom confirmation email template', array(), 'Modules.Custompayment.Admin'),
-	                    'desc' => $this->trans('This email confirmation template will be used when an order gets the status set above', array(), 'Modules.Emailsubscription.Admin'),
-	                    'name' => 'CUSTOM_PAYMENT_EMAIL_CONF',
-	                    'required' => false,
-	                    'lang' => false
+                        'type' => 'text',
+                        'label' => $this->trans('Custom confirmation email template', array(), 'Modules.Custompayment.Admin'),
+                        'desc' => $this->trans('This email confirmation template will be used when an order gets the status set above', array(), 'Modules.Emailsubscription.Admin'),
+                        'name' => 'CUSTOM_PAYMENT_EMAIL_CONF',
+                        'required' => false,
+                        'lang' => false
                     ),
                 ),
                 'submit' => array(
@@ -352,7 +353,7 @@ class CustomPayment extends PaymentModule
         $helper->identifier = $this->identifier;
         $helper->submit_action = 'btnSubmit';
         $helper->currentIndex = $this->context->link->getAdminLink('AdminModules', false) . '&configure='
-            . $this->name . '&tab_module=' . $this->tab . '&module_name=' . $this->name;
+                                . $this->name . '&tab_module=' . $this->tab . '&module_name=' . $this->name;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
         $helper->tpl_vars = array(
             'fields_value' => $this->getConfigFieldsValues(),
@@ -366,16 +367,22 @@ class CustomPayment extends PaymentModule
     public function getConfigFieldsValues()
     {
         $custom_text = array();
+        $custom_name = array();
+        $custom_returned_text = array();
+
         $languages = Language::getLanguages(false);
+
         foreach ($languages as $lang) {
             $custom_text[$lang['id_lang']] = Tools::getValue(
                 'CUSTOM_PAYMENT_CUSTOM_TEXT_' . $lang['id_lang'],
                 Configuration::get('CUSTOM_PAYMENT_CUSTOM_TEXT', $lang['id_lang'])
             );
+
             $custom_name[$lang['id_lang']] = Tools::getValue(
                 'CUSTOM_PAYMENT_NAME_' . $lang['id_lang'],
                 Configuration::get('CUSTOM_PAYMENT_NAME', $lang['id_lang'])
             );
+
             $custom_returned_text[$lang['id_lang']] = Tools::getValue(
                 'CUSTOM_PAYMENT_RETURNED_TEXT_' . $lang['id_lang'],
                 Configuration::get('CUSTOM_PAYMENT_RETURNED_TEXT', $lang['id_lang'])
@@ -385,18 +392,23 @@ class CustomPayment extends PaymentModule
         return array(
             'CUSTOM_PAYMENT_NAME' => $custom_name,
             'CUSTOM_ORDER_STATUS' => Tools::getValue('CUSTOM_ORDER_STATUS', Configuration::get('CUSTOM_ORDER_STATUS')),
-			'CUSTOM_PAYMENT_EMAIL_CONF' => Tools::getValue('CUSTOM_PAYMENT_EMAIL_CONF', Configuration::get('CUSTOM_PAYMENT_EMAIL_CONF')),
+            'CUSTOM_PAYMENT_EMAIL_CONF' => Tools::getValue('CUSTOM_PAYMENT_EMAIL_CONF', Configuration::get('CUSTOM_PAYMENT_EMAIL_CONF')),
             'CUSTOM_PAYMENT_CUSTOM_TEXT' => $custom_text,
-            'CUSTOM_PAYMENT_RETURNED_TEXT' => $custom_returned_text
+            'CUSTOM_PAYMENT_RETURNED_TEXT' => $custom_returned_text,
         );
     }
 
     public function getTemplateVarInfos()
     {
         $cart = $this->context->cart;
+        $currency = new Currency((int) $cart->id_currency);
+
         $total = sprintf(
             $this->trans('%1$s (tax incl.)', array(), 'Modules.Custompayment.Shop'),
-            Tools::displayPrice($cart->getOrderTotal(true, Cart::BOTH))
+            $this->context->getCurrentLocale()->formatPrice(
+                $cart->getOrderTotal(true, Cart::BOTH),
+                $currency->iso_code
+            )
         );
 
         $custompaymentName = Tools::nl2br(Configuration::get('CUSTOM_PAYMENT_NAME', $this->context->language->id));
